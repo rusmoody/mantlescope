@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MantleScope — AI Onchain Intelligence</title>
+<style>
+  :root {
+    --bg:#0a0c0f;--bg2:#10141a;--bg3:#161c24;
+    --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+    --text:#e8edf2;--muted:#6b7a8d;
+    --accent:#00d4a8;--accent2:#0088ff;
+    --warn:#f59e0b;--danger:#ef4444;--success:#10b981;
+    --mono:'Courier New',monospace;--sans:'Trebuchet MS','Century Gothic',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(0,212,168,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,168,0.03) 1px,transparent 1px);
+    background-size:40px 40px}
+  .wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 24px 60px}
+  header{display:flex;align-items:center;justify-content:space-between;padding:20px 0 16px;border-bottom:1px solid var(--border);margin-bottom:16px}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#00d4a8,#0088ff);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .logo-name{font-size:20px;font-weight:800;letter-spacing:-0.5px}
+  .logo-name span{color:var(--accent)}
+  .logo-tag{font-size:11px;color:var(--muted);font-family:var(--mono)}
+  .header-right{display:flex;align-items:center;gap:10px}
+  .net-badge{display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(0,212,168,0.08);border:1px solid rgba(0,212,168,0.2);border-radius:20px;font-size:12px;color:var(--accent);font-family:var(--mono)}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--muted)}
+  .dot.live{background:var(--accent);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,212,168,0.4)}50%{opacity:.8;box-shadow:0 0 0 4px rgba(0,212,168,0)}}
+  .btn{padding:8px 16px;border-radius:8px;font-family:var(--sans);font-weight:600;font-size:13px;cursor:pointer;border:none;transition:opacity .15s}
+  .btn-primary{background:var(--accent);color:#000}.btn-primary:hover{opacity:.85}
+  .btn-outline{background:transparent;color:var(--text);border:1px solid var(--border2)}.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+  /* TABS */
+  .tabs{display:flex;gap:4px;margin-bottom:0}
+  .tab{padding:9px 20px;border-radius:8px 8px 0 0;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);border-bottom:none;background:var(--bg2);color:var(--muted);transition:all .15s}
+  .tab.active{background:var(--bg3);color:var(--accent);border-color:var(--border2)}
+  .tab-content{display:none}.tab-content.active{display:block}
+  .tab-body{background:var(--bg3);border:1px solid var(--border2);border-radius:0 12px 12px 12px;padding:20px;margin-bottom:20px}
+  /* RPC BAR */
+  .rpc-bar{display:flex;align-items:center;gap:12px;padding:9px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;font-size:12px;flex-wrap:wrap}
+  .rpc-info{color:var(--muted);font-family:var(--mono)}.rpc-info span{color:var(--text)}
+  .ml-auto{margin-left:auto}
+  .rpc-input{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;color:var(--text);font-family:var(--mono);font-size:11px;width:240px;outline:none}
+  .rpc-input:focus{border-color:var(--accent)}
+  /* STATS */
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 18px}
+  .stat-label{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
+  .stat-val{font-size:23px;font-weight:800;letter-spacing:-1px}
+  .stat-change{font-size:12px;margin-top:3px;font-family:var(--mono)}
+  .up{color:var(--success)}.down{color:var(--danger)}.neutral{color:var(--muted)}
+  /* MAIN GRID */
+  .main-grid{display:grid;grid-template-columns:1fr 370px;gap:16px;margin-bottom:16px}
+  .panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border)}
+  .panel-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+  .badge{font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:4px;background:rgba(0,212,168,0.1);color:var(--accent)}
+  .badge-blue{background:rgba(0,136,255,0.1);color:var(--accent2)}
+  /* TX */
+  .tx-item{display:flex;align-items:flex-start;gap:11px;padding:11px 18px;border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer}
+  .tx-item.live-tx{border-left:2px solid var(--accent)}
+  .tx-item:hover{background:rgba(255,255,255,0.02)}
+  .tx-item:last-child{border-bottom:none}
+  .tx-icon{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .tx-icon.whale{background:rgba(0,136,255,0.12)}.tx-icon.swap{background:rgba(0,212,168,0.12)}
+  .tx-icon.liq{background:rgba(245,158,11,0.12)}.tx-icon.alert{background:rgba(239,68,68,0.12)}
+  .tx-content{flex:1;min-width:0}
+  .tx-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+  .tx-type{font-size:12px;font-weight:600}.tx-time{font-size:11px;color:var(--muted);font-family:var(--mono)}
+  .tx-desc{font-size:11px;color:var(--muted);line-height:1.5;word-break:break-all}
+  .tx-hash{font-size:10px;color:var(--accent2);font-family:var(--mono);margin-top:2px;cursor:pointer}
+  .tx-hash:hover{text-decoration:underline}
+  .ai-block{margin-top:6px;padding:7px 9px;background:rgba(0,212,168,0.05);border-left:2px solid var(--accent);border-radius:0 5px 5px 0;font-size:11px;color:#a0c8be;line-height:1.5}
+  .ai-label{font-size:9px;font-family:var(--mono);color:var(--accent);font-weight:700;margin-bottom:1px}
+  /* AI CHAT */
+  .ai-panel{display:flex;flex-direction:column;height:490px}
+  .ai-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+  .msg{max-width:90%;padding:8px 12px;border-radius:11px;font-size:12px;line-height:1.6}
+  .msg.ai{background:var(--bg3);border:1px solid var(--border);color:var(--text);align-self:flex-start;border-bottom-left-radius:3px}
+  .msg.user{background:rgba(0,212,168,0.1);border:1px solid rgba(0,212,168,0.2);color:var(--accent);align-self:flex-end;border-bottom-right-radius:3px;font-family:var(--mono)}
+  .msg.thinking{background:var(--bg3);border:1px solid var(--border);align-self:flex-start;color:var(--muted);font-family:var(--mono);font-size:11px}
+  .quick-prompts{display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px;border-bottom:1px solid var(--border)}
+  .qp{font-size:10px;font-family:var(--mono);padding:3px 8px;border:1px solid var(--border2);border-radius:20px;color:var(--muted);background:transparent;cursor:pointer;transition:all .15s}
+  .qp:hover{border-color:var(--accent);color:var(--accent)}
+  .ai-input-row{display:flex;gap:7px;padding:10px 12px;border-top:1px solid var(--border)}
+  .ai-input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;color:var(--text);font-family:var(--sans);font-size:12px;outline:none;transition:border-color .2s}
+  .ai-input:focus{border-color:var(--accent)}.ai-input::placeholder{color:var(--muted)}
+  .btn-send{width:32px;height:32px;background:var(--accent);border:none;border-radius:7px;cursor:pointer;font-size:12px;color:#000;flex-shrink:0;transition:opacity .15s}
+  .btn-send:hover{opacity:.8}.btn-send:disabled{opacity:.4;cursor:not-allowed}
+  /* WHALE */
+  .whale-row{display:flex;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);font-size:12px}
+  .whale-row:last-child{border-bottom:none}
+  .addr{font-family:var(--mono);font-size:11px;color:var(--accent2);flex:1;cursor:pointer}
+  .addr:hover{text-decoration:underline}
+  .pnl{font-family:var(--mono);font-size:12px;font-weight:700}
+  .tag{display:inline-block;font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:4px}
+  .tag.hot{background:rgba(239,68,68,0.12);color:#f87171}
+  .tag.new{background:rgba(0,212,168,0.1);color:var(--accent)}
+  .tag.ai-tag{background:rgba(0,136,255,0.1);color:var(--accent2)}
+  /* BOTTOM */
+  .bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  /* ALERT */
+  .alert-banner{display:flex;align-items:center;gap:10px;padding:9px 14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:9px;font-size:12px;color:var(--warn);margin-bottom:14px}
+  /* WALLET */
+  .wallet-hero{text-align:center;padding:28px 20px 20px}
+  .wallet-hero h2{font-size:22px;font-weight:800;margin-bottom:7px}
+  .wallet-hero p{font-size:13px;color:var(--muted)}
+  .wallet-input-row{display:flex;gap:10px;max-width:580px;margin:18px auto 0}
+  .wallet-addr-input{flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:11px 15px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none}
+  .wallet-addr-input:focus{border-color:var(--accent)}.wallet-addr-input::placeholder{color:var(--muted)}
+  .wallet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+  .w-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+  .w-card-label{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;margin-bottom:7px}
+  .w-card-val{font-size:21px;font-weight:800}
+  .w-card-sub{font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+  .tx-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+  .tx-table th{text-align:left;padding:9px 12px;color:var(--muted);font-family:var(--mono);font-size:11px;font-weight:400;border-bottom:1px solid var(--border)}
+  .tx-table td{padding:9px 12px;border-bottom:1px solid var(--border);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tx-table tr:last-child td{border-bottom:none}
+  .tx-table tr:hover td{background:rgba(255,255,255,0.02)}
+  .tx-link{color:var(--accent2);font-family:var(--mono);font-size:11px;cursor:pointer}
+  .tx-link:hover{text-decoration:underline}
+  .method-badge{font-size:10px;font-family:var(--mono);padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--muted);border:1px solid var(--border)}
+  .wallet-ai-block{background:var(--bg2);border:1px solid rgba(0,212,168,0.2);border-radius:12px;padding:18px;margin-top:14px}
+  .wallet-ai-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:600;color:var(--accent)}
+  .wallet-ai-text{font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap}
+  .skeleton{background:linear-gradient(90deg,var(--bg2) 25%,var(--bg3) 50%,var(--bg2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;height:14px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  @media(max-width:900px){.main-grid{grid-template-columns:1fr}.stats-row{grid-template-columns:repeat(2,1fr)}.bottom-grid{grid-template-columns:1fr}.wallet-grid{grid-template-columns:1fr 1fr}}
+  ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+  /* SETTINGS MODAL */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center}
+  .modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:28px;width:460px;max-width:95vw}
+  .modal h3{font-size:16px;font-weight:800;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;margin-bottom:6px}
+  .field select,.field input[type=text],.field input[type=password],.field input[type=number]{
+    width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+    padding:9px 12px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none}
+  .field select:focus,.field input:focus{border-color:var(--accent)}
+  .field-hint{font-size:11px;color:var(--muted);margin-top:4px}
+  .model-info{font-size:11px;color:var(--accent);margin-top:4px;font-family:var(--mono)}
+  .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🔭</div>
+    <div>
+      <div class="logo-name">Mantle<span>Scope</span></div>
+      <div class="logo-tag">AI ONCHAIN INTELLIGENCE · MANTLE NETWORK</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="net-badge" id="netBadge"><div class="dot" id="netDot"></div><span id="netLabel">CONNECTING...</span></div>
+    <button class="btn btn-outline" onclick="showTab('wallet')">🔍 Analyze Wallet</button>
+    <button class="btn btn-outline" onclick="openSettings()" style="font-size:16px;padding:7px 13px">⚙️</button>
+    <button class="btn btn-primary" onclick="refreshAll()">↻ Refresh</button>
+  </div>
+</header>
+
+<div class="rpc-bar">
+  <div style="display:flex;align-items:center;gap:6px">
+    <div class="dot" id="rpcDot" style="width:8px;height:8px"></div>
+    <span style="font-size:12px;color:var(--muted)" id="rpcStatusText">Not connected</span>
+  </div>
+  <div class="rpc-info">Block: <span id="blockNum">—</span></div>
+  <div class="rpc-info">Gas: <span id="gasPrice">—</span> Gwei</div>
+  <div class="rpc-info">Tx/block: <span id="txPerBlock">—</span></div>
+  <div class="ml-auto" style="display:flex;gap:7px;align-items:center">
+    <input class="rpc-input" id="rpcInput" value="https://rpc.mantle.xyz" placeholder="RPC URL"/>
+    <button class="btn btn-outline" style="padding:6px 12px;font-size:12px" onclick="connectRPC()">Connect</button>
+  </div>
+</div>
+
+<div class="alert-banner">⚠️ <strong>AI Alert:</strong> Unusual whale cluster — 3 wallets moved $4.2M from mETH to USDY in last 10 min. Possible de-risking signal.</div>
+
+<div class="tabs">
+  <div class="tab active" id="tab-dashboard" onclick="showTab('dashboard')">📊 Dashboard</div>
+  <div class="tab" id="tab-wallet" onclick="showTab('wallet')">🔍 Wallet Analyzer</div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="tab-content active" id="content-dashboard">
+  <div class="tab-body" style="padding:0;border-top-left-radius:0">
+    <div style="padding:18px 18px 0"><div class="stats-row" id="statsRow"></div></div>
+    <div style="padding:0 18px 18px">
+      <div class="main-grid">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Live Transactions <span class="badge" id="feedBadge">SIMULATED</span></div>
+            <select id="filterSel" style="background:var(--bg3);border:1px solid var(--border2);color:var(--muted);font-size:11px;padding:4px 8px;border-radius:6px;font-family:var(--mono)">
+              <option value="all">All types</option>
+              <option value="whale">🐋 Whales ($50K+)</option>
+              <option value="swap">↔ Swaps</option>
+              <option value="liq">💧 Liquidity</option>
+            </select>
+          </div>
+          <div id="txFeed"></div>
+        </div>
+        <div class="panel ai-panel">
+          <div class="panel-header">
+            <div class="panel-title">AI Analyst <span class="badge badge-blue" id="modelBadge">DeepSeek V3</span></div>
+            <button onclick="openSettings()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px" title="Settings">⚙️</button>
+          </div>
+          <div class="quick-prompts">
+            <button class="qp" onclick="sendQuick('What are whales doing right now on Mantle?')">🐋 Whales</button>
+            <button class="qp" onclick="sendQuick('Any arbitrage opportunities on Mantle DeFi?')">⚡ Arb</button>
+            <button class="qp" onclick="sendQuick('Analyze mETH vs USDY yield trends')">📈 Yields</button>
+            <button class="qp" onclick="sendQuick('What risk signals do you see in recent blocks?')">⚠️ Risks</button>
+          </div>
+          <div class="ai-messages" id="aiMessages"></div>
+          <div class="ai-input-row">
+            <input class="ai-input" id="aiInput" placeholder="Ask about onchain activity..." onkeydown="if(event.key==='Enter')sendMessage()"/>
+            <button class="btn-send" id="sendBtn" onclick="sendMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+      <div class="bottom-grid">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Top Whale Wallets <span class="badge">TRACKED</span></div></div>
+          <div id="whaleList"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">24h Volume by Protocol</div></div>
+          <div style="padding:14px 18px 18px"><div style="position:relative;width:100%;height:195px"><canvas id="volChart" role="img" aria-label="24h volume by Mantle protocol">Volume data.</canvas></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WALLET ANALYZER -->
+<div class="tab-content" id="content-wallet">
+  <div class="tab-body" style="padding:0;border-top-left-radius:0">
+    <div class="wallet-hero">
+      <h2>🔍 Wallet Analyzer</h2>
+      <p>Paste any Mantle address — get full history, token holdings and AI analysis</p>
+      <div class="wallet-input-row">
+        <input class="wallet-addr-input" id="walletAddr" placeholder="0x... Mantle address" onkeydown="if(event.key==='Enter')analyzeWallet()"/>
+        <button class="btn btn-primary" onclick="analyzeWallet()" id="analyzeBtn" style="white-space:nowrap">Analyze</button>
+      </div>
+      <div style="margin-top:9px;font-size:11px;color:var(--muted)">
+        try sample: <span style="color:var(--accent2);cursor:pointer;font-family:var(--mono)" onclick="document.getElementById('walletAddr').value='0x6B73b1b3C42F8BbE575B61dA19e1ef2C4dBB13B7';analyzeWallet()">0x6B73...3B7</span>
+      </div>
+    </div>
+    <div id="walletResults" style="padding:0 22px 22px"></div>
+  </div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+<script>
+// TABS
+function showTab(n){
+  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+  document.getElementById('content-'+n).classList.add('active');
+  document.getElementById('tab-'+n).classList.add('active');
+}
+
+// RPC
+let provider=null, rpcConnected=false, lastBlock=null;
+
+async function connectRPC(){
+  const url=document.getElementById('rpcInput').value.trim()||'https://rpc.mantle.xyz';
+  const st=document.getElementById('rpcStatusText');
+  st.textContent='Connecting...'; st.style.color='var(--muted)';
+  try{
+    provider=new ethers.JsonRpcProvider(url);
+    const [bn, fee]=await Promise.all([provider.getBlockNumber(), provider.getFeeData()]);
+    rpcConnected=true;
+    document.getElementById('rpcDot').className='dot live';
+    st.textContent='Connected · '+url.replace(/https?:\/\//,''); st.style.color='var(--accent)';
+    document.getElementById('netDot').className='dot live';
+    document.getElementById('netLabel').textContent='MANTLE MAINNET';
+    document.getElementById('feedBadge').textContent='LIVE';
+    updateBlockInfo(bn,fee);
+    startPolling();
+  }catch(e){
+    st.textContent='Failed: '+e.message.slice(0,50); st.style.color='var(--danger)';
+  }
+}
+
+function updateBlockInfo(bn,fee){
+  document.getElementById('blockNum').textContent='#'+bn.toLocaleString();
+  if(fee?.gasPrice){
+    document.getElementById('gasPrice').textContent=parseFloat(ethers.formatUnits(fee.gasPrice,'gwei')).toFixed(4);
+  }
+}
+
+let pollTimer=null;
+function startPolling(){
+  if(pollTimer)clearInterval(pollTimer);
+  pollTimer=setInterval(async()=>{
+    try{
+      const bn=await provider.getBlockNumber();
+      if(bn===lastBlock)return;
+      lastBlock=bn;
+      const [block,fee]=await Promise.all([provider.getBlock(bn,true),provider.getFeeData()]);
+      updateBlockInfo(bn,fee);
+      document.getElementById('txPerBlock').textContent=block?.transactions?.length||'—';
+      if(block?.transactions?.length>0)processBlock(block);
+    }catch(e){}
+  },4000);
+}
+
+async function processBlock(block){
+  const txs=block.transactions.slice(0,15);
+  for(const th of txs){
+    try{
+      const tx=typeof th==='string'?await provider.getTransaction(th):th;
+      if(!tx)continue;
+      const v=parseFloat(ethers.formatEther(tx.value||0n));
+      if(v>0.1){
+        injectLiveTx({hash:tx.hash,from:tx.from,to:tx.to||'contract',value:v,type:v>5?'whale':'swap'});
+      }
+    }catch(e){}
+  }
+}
+
+function injectLiveTx(tx){
+  const isWhale=tx.type==='whale';
+  txItems.unshift({
+    type:tx.type,icon:isWhale?'🐋':'↔️',cls:isWhale?'whale':'swap',
+    label:isWhale?'Whale Transfer':'Swap',
+    desc:`${tx.from.slice(0,8)}...${tx.from.slice(-4)} → ${tx.to.slice(0,8)}...  ${tx.value.toFixed(3)} MNT`,
+    ai:isWhale?`Live: wallet moved ${tx.value.toFixed(1)} MNT. Monitoring for accumulation pattern.`:`Live swap: ${tx.value.toFixed(3)} MNT detected.`,
+    hash:tx.hash,age:0,isReal:true
+  });
+  if(txItems.length>MAX_TX)txItems.pop();
+  renderFeed();
+}
+
+// SIMULATED DATA
+const TT=[
+  {type:'whale',icon:'🐋',cls:'whale',label:'Whale Transfer',
+   d:['0x71f...→0x3a2 moved {a} MNT to Byreal vault','0xd8c accumulated {a} mETH from 4 sources','Smart wallet 0x9fe bridged {a} USDY → Mantle'],
+   ai:['Wallet >$1M moved 3× in 48h. Pre-pump accumulation pattern.','mETH accumulation ahead of yield adjustment. Watch LST repricing.','USDY bridge inflow = TradFi yield farming via Ondo.']},
+  {type:'swap',icon:'↔️',cls:'swap',label:'Large Swap',
+   d:['Swapped {a} USDY → mETH on Merchant Moe','{a} MNT → USDY via Agni Finance (slippage 0.04%)','Multi-hop: {a} WETH → MNT → USDY'],
+   ai:['Stable→LST rotation = risk-on. mETH demand rising.','Stablecoin exit = protocol event anticipation.','Multi-hop = likely MEV bot or DeFi power user.']},
+  {type:'liq',icon:'💧',cls:'liq',label:'Liquidity Event',
+   d:['Added {a} to mETH/USDY concentrated position (±0.5%)','Removed {a} USDY from Fluxion v3','{a} MNT/WETH LP added at current tick'],
+   ai:['Tight range LP = professional MM. Fee capture.','LP removal = rebalancing signal.','MNT/WETH depth growing = improving native liquidity.']},
+  {type:'alert',icon:'🚨',cls:'alert',label:'Anomaly',
+   d:['Flash loan {a} USDY — repaid same block','Contract called 47× in 3s ({a} total)','New wallet: first tx {a} MNT'],
+   ai:['Flash loan = arb across Merchant Moe/Agni. No exploit.','High-freq = bot harvesting rewards.','Fresh wallet large inflow = possible split position.']},
+];
+function ra(){const t=[[50,500],[500,5000],[5000,50000],[50000,500000]];const[lo,hi]=t[Math.floor(Math.random()*t.length)];const v=lo+Math.random()*(hi-lo);return v>=1e6?'$'+(v/1e6).toFixed(2)+'M':v>=1000?'$'+(v/1000).toFixed(1)+'K':'$'+Math.round(v);}
+function ta(s){return s<60?s+'s ago':Math.floor(s/60)+'m ago';}
+let txItems=[],MAX_TX=10;
+function gt(){const t=TT[Math.floor(Math.random()*TT.length)];return{...t,desc:t.d[Math.floor(Math.random()*t.d.length)].replace('{a}',ra()),ai:t.ai[Math.floor(Math.random()*t.ai.length)],age:0,id:Date.now()+Math.random()};}
+
+function renderFeed(){
+  const f=document.getElementById('filterSel').value;
+  const list=f==='all'?txItems:txItems.filter(t=>t.type===f);
+  document.getElementById('txFeed').innerHTML=list.slice(0,7).map(tx=>`
+    <div class="tx-item${tx.isReal?' live-tx':''}">
+      <div class="tx-icon ${tx.cls}">${tx.icon}</div>
+      <div class="tx-content">
+        <div class="tx-top">
+          <span class="tx-type">${tx.label}${tx.isReal?' <span style="font-size:9px;color:var(--accent);font-family:var(--mono)">[LIVE]</span>':''}</span>
+          <span class="tx-time">${ta(tx.age)}</span>
+        </div>
+        <div class="tx-desc">${tx.desc}</div>
+        ${tx.hash?`<div class="tx-hash" onclick="open('https://explorer.mantle.xyz/tx/${tx.hash}','_blank')">${tx.hash.slice(0,18)}... ↗</div>`:''}
+        <div class="ai-block"><div class="ai-label">✦ AI</div>${tx.ai}</div>
+      </div>
+    </div>`).join('');
+}
+document.getElementById('filterSel').addEventListener('change',renderFeed);
+
+function renderStats(){
+  const s=[{l:'Total Volume 24h',v:'$284.7M',c:'+12.4%',d:'up'},{l:'Active Wallets',v:'14,832',c:'+847',d:'up'},{l:'AI Alerts Today',v:'23',c:'3 critical',d:'neutral'},{l:'MNT Price',v:'$0.847',c:'-1.2%',d:'down'}];
+  document.getElementById('statsRow').innerHTML=s.map(x=>`<div class="stat-card"><div class="stat-label">${x.l}</div><div class="stat-val">${x.v}</div><div class="stat-change ${x.d}">${x.d==='up'?'↑':x.d==='down'?'↓':'●'} ${x.c}</div></div>`).join('');
+}
+
+const WHALES=[
+  {addr:'0x71f...3a4b',bal:'$2.84M mETH',pnl:'+$142K',d:'up',tag:'Accumulating'},
+  {addr:'0xd8c...9f12',bal:'$1.92M USDY',pnl:'+$38K',d:'up',tag:'Yield farming'},
+  {addr:'0x3fe...cc07',bal:'$4.10M MNT',pnl:'-$87K',d:'down',tag:'De-risking'},
+  {addr:'0xa91...5b3e',bal:'$890K mETH',pnl:'+$210K',d:'up',tag:'Arb bot'},
+  {addr:'0x0c4...f88a',bal:'$3.30M USDY',pnl:'+$15K',d:'up',tag:'New whale'},
+];
+function renderWhales(){
+  document.getElementById('whaleList').innerHTML=WHALES.map(w=>`
+    <div class="whale-row">
+      <div>🐋</div>
+      <div class="addr" onclick="loadWallet('${w.addr}')">${w.addr}</div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">${w.bal}</div>
+      <div class="pnl ${w.d==='up'?'up':'down'}">${w.pnl}</div>
+      <div class="tag ${w.tag.includes('New')?'new':w.tag.includes('Arb')?'ai-tag':'hot'}">${w.tag}</div>
+    </div>`).join('');
+}
+function loadWallet(addr){document.getElementById('walletAddr').value=addr;showTab('wallet');analyzeWallet();}
+
+function renderChart(){
+  new Chart(document.getElementById('volChart').getContext('2d'),{
+    type:'bar',
+    data:{labels:['Merchant Moe','Agni Finance','Fluxion','Byreal','USDY Pool'],
+      datasets:[{data:[18.4,12.7,9.2,7.8,5.3],backgroundColor:['#00d4a8','#0088ff','#f59e0b','#8b5cf6','#10b981'],borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' $'+c.parsed.y+'M'}}},
+      scales:{x:{ticks:{color:'#6b7a8d',font:{size:10},autoSkip:false,maxRotation:20},grid:{color:'rgba(255,255,255,0.04)'}},
+              y:{ticks:{color:'#6b7a8d',font:{size:10},callback:v=>'$'+v+'M'},grid:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+}
+
+// WALLET ANALYZER
+async function analyzeWallet(){
+  const addr=document.getElementById('walletAddr').value.trim();
+  if(!addr||addr.length<10)return;
+  const btn=document.getElementById('analyzeBtn');
+  btn.textContent='Analyzing...';btn.disabled=true;
+  document.getElementById('walletResults').innerHTML=`
+    <div class="wallet-grid">${[1,2,3].map(()=>`<div class="w-card"><div class="skeleton" style="width:60%;margin-bottom:10px"></div><div class="skeleton" style="width:40%;height:24px"></div></div>`).join('')}</div>
+    <div style="text-align:center;padding:18px;color:var(--muted);font-size:12px;font-family:var(--mono)">Fetching onchain data...</div>`;
+  let data;
+  try{data=await fetchWalletData(addr);}catch(e){data=getSampleData(addr);}
+  renderWallet(addr,data);
+  btn.textContent='Analyze';btn.disabled=false;
+  runWalletAI(addr,data);
+}
+
+async function fetchWalletData(addr){
+  if(!provider)throw new Error('No RPC');
+  const[bal,txCount]=await Promise.all([provider.getBalance(addr),provider.getTransactionCount(addr)]);
+  const balMNT=parseFloat(ethers.formatEther(bal));
+  const bn=await provider.getBlockNumber();
+  const recentTxs=[];
+  for(let i=0;i<5&&recentTxs.length<10;i++){
+    try{
+      const block=await provider.getBlock(bn-i,true);
+      if(!block?.transactions)continue;
+      for(const th of block.transactions){
+        const tx=typeof th==='string'?await provider.getTransaction(th):th;
+        if(!tx)continue;
+        const fl=tx.from?.toLowerCase()===addr.toLowerCase();
+        const tl=tx.to?.toLowerCase()===addr.toLowerCase();
+        if(fl||tl){
+          recentTxs.push({hash:tx.hash,from:tx.from,to:tx.to,value:parseFloat(ethers.formatEther(tx.value||0n)),blockNumber:tx.blockNumber,direction:fl?'OUT':'IN',method:tx.data?.length>2?'Contract call':'Transfer'});
+          if(recentTxs.length>=10)break;
+        }
+      }
+    }catch(e){}
+  }
+  return{balMNT,txCount,recentTxs,fromRPC:true};
+}
+
+function getSampleData(addr){
+  const whale=addr.toLowerCase().includes('6b73')||addr.toLowerCase().includes('71f');
+  return{
+    balMNT:whale?84320.5:Math.random()*5000+100,
+    txCount:whale?1847:Math.floor(Math.random()*300+5),
+    tokens:[
+      {sym:'MNT',bal:whale?'84,320.5':(Math.random()*1000).toFixed(1),usd:whale?'$71,355':'$'+Math.floor(Math.random()*5000)},
+      {sym:'mETH',bal:whale?'12.84':(Math.random()*2).toFixed(3),usd:whale?'$48,920':'$'+Math.floor(Math.random()*10000)},
+      {sym:'USDY',bal:whale?'23,400':Math.floor(Math.random()*2000).toString(),usd:whale?'$23,400':'$'+Math.floor(Math.random()*2000)},
+    ],
+    recentTxs:[
+      {hash:'0xabc123def456789abc1',from:addr,to:'0xMerchantMoe',value:1250.5,direction:'OUT',method:'swap',blockNumber:72184310},
+      {hash:'0xbcd234efa567890bcd2',from:'0xAgniFinance',to:addr,value:1260.2,direction:'IN',method:'swap',blockNumber:72184250},
+      {hash:'0xcde345f0b678901cde3',from:addr,to:'0xFluxion',value:5000,direction:'OUT',method:'addLiquidity',blockNumber:72183900},
+      {hash:'0xdef456a1c789012def4',from:addr,to:'0xBridge',value:25000,direction:'OUT',method:'bridgeAsset',blockNumber:72180100},
+      {hash:'0xef0567b2d890123ef05',from:'0xWhaleWallet',to:addr,value:26100,direction:'IN',method:'Transfer',blockNumber:72179800},
+    ],
+    fromRPC:false
+  };
+}
+
+function renderWallet(addr,data){
+  const total=data.tokens?data.tokens.reduce((s,t)=>s+parseInt((t.usd||'0').replace(/[\$,]/g,'')||0),0):Math.round(data.balMNT*0.847);
+  const short=addr.slice(0,8)+'...'+addr.slice(-6);
+  document.getElementById('walletResults').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <div style="font-size:15px;font-weight:800;font-family:var(--mono)">${short}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${data.fromRPC?'✅ Live RPC data':'📋 Sample data — connect RPC for live'}</div>
+      </div>
+      <span class="tx-link" onclick="open('https://explorer.mantle.xyz/address/${addr}','_blank')" style="font-size:12px">View on Explorer ↗</span>
+    </div>
+    <div class="wallet-grid">
+      <div class="w-card">
+        <div class="w-card-label">Portfolio Value</div>
+        <div class="w-card-val">$${total.toLocaleString()}</div>
+        <div class="w-card-sub">across ${data.tokens?.length||1} assets</div>
+      </div>
+      <div class="w-card">
+        <div class="w-card-label">MNT Balance</div>
+        <div class="w-card-val">${data.balMNT>=1000?(data.balMNT/1000).toFixed(1)+'K':data.balMNT.toFixed(2)}</div>
+        <div class="w-card-sub">≈ $${(data.balMNT*0.847).toFixed(0)}</div>
+      </div>
+      <div class="w-card">
+        <div class="w-card-label">Total Transactions</div>
+        <div class="w-card-val">${data.txCount.toLocaleString()}</div>
+        <div class="w-card-sub">${data.txCount>100?'🔥 Active trader':data.txCount>10?'Regular user':'New wallet'}</div>
+      </div>
+    </div>
+    ${data.tokens?`
+    <div class="panel" style="margin-bottom:14px">
+      <div class="panel-header"><div class="panel-title">Token Holdings</div></div>
+      <table class="tx-table">
+        <thead><tr><th style="width:30%">Token</th><th style="width:35%">Balance</th><th>USD Value</th></tr></thead>
+        <tbody>${data.tokens.map(t=>`<tr><td><span style="font-family:var(--mono);font-weight:700">${t.sym}</span></td><td style="font-family:var(--mono);color:var(--muted)">${t.bal}</td><td style="font-family:var(--mono);color:var(--success)">${t.usd}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>`:''}
+    <div class="panel" style="margin-bottom:14px">
+      <div class="panel-header"><div class="panel-title">Recent Transactions <span class="badge badge-blue">${data.recentTxs.length} found</span></div></div>
+      <div style="overflow-x:auto">
+        <table class="tx-table">
+          <thead><tr><th style="width:25%">Hash</th><th style="width:12%">Dir</th><th style="width:20%">Value</th><th style="width:20%">Method</th><th>Block</th></tr></thead>
+          <tbody>${data.recentTxs.map(tx=>`
+            <tr>
+              <td><span class="tx-link" onclick="open('https://explorer.mantle.xyz/tx/${tx.hash}','_blank')">${tx.hash.slice(0,12)}...</span></td>
+              <td><span style="color:${tx.direction==='IN'?'var(--success)':'var(--danger)'};font-family:var(--mono);font-size:11px">${tx.direction==='IN'?'↓ IN':'↑ OUT'}</span></td>
+              <td style="font-family:var(--mono)">${tx.value.toFixed(3)} MNT</td>
+              <td><span class="method-badge">${tx.method||'Transfer'}</span></td>
+              <td style="font-family:var(--mono);color:var(--muted);font-size:11px">#${(tx.blockNumber||0).toLocaleString()}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="wallet-ai-block" id="waiBlock">
+      <div class="wallet-ai-header" id="waiHeader">✦ AI Analysis — generating...</div>
+      <div class="wallet-ai-text" id="waiText" style="color:var(--muted)">Analyzing wallet behavior pattern, risk profile and DeFi activity...</div>
+    </div>`;
+}
+
+// ─── SETTINGS ─────────────────────────────────────────────────
+const MODELS = {
+  'deepseek-chat':       { label:'DeepSeek V3',      url:'https://api.deepseek.com/v1/chat/completions',  fmt:'openai', price:'$0.14/MTok' },
+  'deepseek-reasoner':   { label:'DeepSeek R1',       url:'https://api.deepseek.com/v1/chat/completions',  fmt:'openai', price:'$0.55/MTok' },
+  'claude-sonnet-4-20250514': { label:'Claude Sonnet 4', url:'https://api.anthropic.com/v1/messages', fmt:'anthropic', price:'$3/MTok' },
+  'gpt-4o-mini':         { label:'GPT-4o mini',       url:'https://api.openai.com/v1/chat/completions',    fmt:'openai', price:'$0.15/MTok' },
+  'gpt-4o':              { label:'GPT-4o',             url:'https://api.openai.com/v1/chat/completions',    fmt:'openai', price:'$2.5/MTok' },
+};
+
+let cfg = {
+  model: 'deepseek-chat',
+  apiKey: '',
+  historyDepth: 10,
+  whaleThreshold: 5,   // MNT
+  autoAI: true,
+};
+
+function saveCfg(){localStorage.setItem('mscope_cfg',JSON.stringify(cfg));}
+function loadCfg(){try{const s=localStorage.getItem('mscope_cfg');if(s)cfg={...cfg,...JSON.parse(s)};}catch(e){}}
+
+function openSettings(){
+  const m=cfg.model; const mk=MODELS[m];
+  document.getElementById('settingsOverlay').style.display='flex';
+  document.getElementById('sCfgModel').value=m;
+  document.getElementById('sCfgKey').value=cfg.apiKey;
+  document.getElementById('sCfgDepth').value=cfg.historyDepth;
+  document.getElementById('sCfgWhale').value=cfg.whaleThreshold;
+  updateModelInfo(m);
+}
+function closeSettings(){document.getElementById('settingsOverlay').style.display='none';}
+function updateModelInfo(m){
+  const mk=MODELS[m];
+  document.getElementById('sModelInfo').textContent=mk?`${mk.label} · ${mk.price}`:'';
+}
+function applySettings(){
+  cfg.model=document.getElementById('sCfgModel').value;
+  cfg.apiKey=document.getElementById('sCfgKey').value.trim();
+  cfg.historyDepth=parseInt(document.getElementById('sCfgDepth').value)||10;
+  cfg.whaleThreshold=parseFloat(document.getElementById('sCfgWhale').value)||5;
+  saveCfg();
+  const mk=MODELS[cfg.model];
+  document.getElementById('modelBadge').textContent=mk?mk.label:'AI';
+  closeSettings();
+  addMsg('ai',`✅ Settings saved. Model: ${mk?.label||cfg.model}. History depth: ${cfg.historyDepth} messages. Whale threshold: ${cfg.whaleThreshold} MNT.`);
+}
+
+// ─── UNIFIED AI CALL ──────────────────────────────────────────
+const SYS=`You are MantleScope AI — expert onchain analyst for Mantle L2. Be concise, quant-style. Reference: Merchant Moe, Agni Finance, Fluxion, mETH, USDY, MNT. Max 120 words. Bullet points for signals. MNT ~$0.847, high whale activity in mETH/USDY pools.`;
+
+async function callAI(messages, system){
+  const m=cfg.model; const mk=MODELS[m];
+  if(!mk) throw new Error('Unknown model');
+  if(!cfg.apiKey) throw new Error('No API key — open ⚙️ Settings');
+
+  if(mk.fmt==='anthropic'){
+    const res=await fetch(mk.url,{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':cfg.apiKey,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:m,max_tokens:1000,system:system||SYS,messages})});
+    const d=await res.json();
+    if(d.error)throw new Error(d.error.message);
+    return d.content?.find(b=>b.type==='text')?.text||'';
+  } else {
+    // OpenAI-compatible (DeepSeek, GPT)
+    const msgs=system?[{role:'system',content:system},...messages]:messages;
+    const res=await fetch(mk.url,{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+cfg.apiKey},
+      body:JSON.stringify({model:m,max_tokens:1000,messages:msgs})});
+    const d=await res.json();
+    if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
+    return d.choices?.[0]?.message?.content||'';
+  }
+}
+
+// ─── AI CHAT ──────────────────────────────────────────────────
+let chatH=[];
+function addMsg(role,text,thinking=false){
+  const d=document.createElement('div');
+  d.className='msg '+(thinking?'thinking':role==='user'?'user':'ai');
+  d.textContent=text;if(thinking)d.id='tmsg';
+  const b=document.getElementById('aiMessages');b.appendChild(d);b.scrollTop=b.scrollHeight;
+}
+function rmThink(){const t=document.getElementById('tmsg');if(t)t.remove();}
+
+async function sendMessage(){
+  const inp=document.getElementById('aiInput');const text=inp.value.trim();if(!text)return;
+  inp.value='';addMsg('user',text);
+  chatH.push({role:'user',content:text});
+  // trim history to configured depth
+  if(chatH.length>cfg.historyDepth*2)chatH=chatH.slice(-cfg.historyDepth*2);
+  document.getElementById('sendBtn').disabled=true;addMsg('ai','◌ analyzing...',true);
+  try{
+    const reply=await callAI(chatH,SYS);
+    rmThink();chatH.push({role:'assistant',content:reply});addMsg('ai',reply);
+  }catch(e){
+    rmThink();
+    const hint=e.message.includes('API key')?e.message:'⚠ '+e.message+' — открой ⚙️ Settings и укажи API key.';
+    addMsg('ai',hint);
+  }
+  document.getElementById('sendBtn').disabled=false;
+}
+function sendQuick(t){document.getElementById('aiInput').value=t;sendMessage();}
+
+// ─── WALLET AI ────────────────────────────────────────────────
+async function runWalletAI(addr,data){
+  const txSummary=data.recentTxs.slice(0,5).map(t=>`${t.direction} ${t.value.toFixed(2)} MNT (${t.method||'transfer'})`).join(', ');
+  const prompt=`Analyze Mantle wallet:
+Address: ${addr.slice(0,12)}...  Balance: ${data.balMNT.toFixed(2)} MNT  Txs: ${data.txCount}
+Recent: ${txSummary}
+${data.tokens?'Holdings: '+data.tokens.map(t=>t.sym+' '+t.bal).join(', '):''}
+Give: 1) Archetype 2) Risk profile 3) Pattern 4) Actionable insight. Max 150 words.`;
+  try{
+    const reply=await callAI([{role:'user',content:prompt}],'You are MantleScope AI — expert Mantle L2 onchain analyst. Max 150 words, bullet points.');
+    document.getElementById('waiText').textContent=reply;
+    document.getElementById('waiText').style.color='var(--text)';
+    document.getElementById('waiHeader').textContent='✦ AI Analysis ('+MODELS[cfg.model]?.label+') — '+addr.slice(0,10)+'...';
+  }catch(e){
+    document.getElementById('waiText').textContent='⚠ '+e.message+' — открой ⚙️ Settings.';
+  }
+}
+
+// TICKER
+function tick(){
+  txItems.forEach(t=>t.age++);
+  if(!rpcConnected&&Math.random()<0.3){txItems.unshift(gt());if(txItems.length>MAX_TX)txItems.pop();}
+  renderFeed();
+}
+
+function refreshAll(){txItems=Array.from({length:7},(_,i)=>({...gt(),age:i*18}));renderFeed();renderStats();renderWhales();}
+
+function init(){
+  loadCfg();
+  renderStats();renderWhales();renderChart();
+  txItems=Array.from({length:7},(_,i)=>({...gt(),age:i*18}));renderFeed();
+  setInterval(tick,4000);
+  const mk=MODELS[cfg.model];
+  if(mk)document.getElementById('modelBadge').textContent=mk.label;
+  setTimeout(()=>addMsg('ai','MantleScope AI online. 🟡 Симулированный режим (sandbox). Открой ⚙️ Settings → вставь API key (DeepSeek рекомендован) → подключи RPC на Vercel.'),500);
+  // connectRPC(); // ← раскомментируй на Vercel
+}
+init();
+</script>
+
+<!-- SETTINGS MODAL -->
+<div class="overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <h3>⚙️ Settings</h3>
+    <div class="field">
+      <label>AI Model</label>
+      <select id="sCfgModel" onchange="updateModelInfo(this.value)">
+        <option value="deepseek-chat">DeepSeek V3 — $0.14/MTok ⭐ recommended</option>
+        <option value="deepseek-reasoner">DeepSeek R1 (reasoning) — $0.55/MTok</option>
+        <option value="gpt-4o-mini">GPT-4o mini — $0.15/MTok</option>
+        <option value="gpt-4o">GPT-4o — $2.5/MTok</option>
+        <option value="claude-sonnet-4-20250514">Claude Sonnet 4 — $3/MTok</option>
+      </select>
+      <div class="model-info" id="sModelInfo">DeepSeek V3 · $0.14/MTok</div>
+    </div>
+    <div class="field">
+      <label>API Key</label>
+      <input type="password" id="sCfgKey" placeholder="sk-..."/>
+      <div class="field-hint">DeepSeek: <a href="https://platform.deepseek.com" target="_blank" style="color:var(--accent2)">platform.deepseek.com</a> &nbsp;·&nbsp; OpenAI: <a href="https://platform.openai.com" target="_blank" style="color:var(--accent2)">platform.openai.com</a> &nbsp;·&nbsp; Anthropic: <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent2)">console.anthropic.com</a></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="field">
+        <label>History Depth (messages)</label>
+        <input type="number" id="sCfgDepth" min="2" max="50" step="1"/>
+        <div class="field-hint">Сколько сообщений помнит AI</div>
+      </div>
+      <div class="field">
+        <label>Whale Threshold (MNT)</label>
+        <input type="number" id="sCfgWhale" min="0.1" step="0.1"/>
+        <div class="field-hint">Мин. сумма для whale метки</div>
+      </div>
+    </div>
+    <div style="padding:10px 12px;background:rgba(0,212,168,0.05);border:1px solid rgba(0,212,168,0.15);border-radius:8px;font-size:11px;color:var(--muted);line-height:1.7;margin-top:4px">
+      💡 <strong style="color:var(--text)">DeepSeek V3</strong> — лучший выбор: 100 запросов/день ≈ <strong style="color:var(--accent)">$0.02/день</strong> vs Claude ≈ $1.5/день. Качество анализа сопоставимо.
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="applySettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
